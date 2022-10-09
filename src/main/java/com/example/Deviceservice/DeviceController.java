@@ -7,6 +7,8 @@ import com.example.Deviceservice.model.Type;
 import com.example.Deviceservice.repositories.DeviceRepository;
 import com.example.Deviceservice.repositories.EventRepository;
 import com.example.Deviceservice.repositories.ProjectRepository;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -29,35 +31,35 @@ public class DeviceController {
     private EventRepository eventRepository;
 
     @PostMapping(path="/addProject")
-    public @ResponseBody String addNewProject (@RequestParam String name) {
+    public @ResponseBody ResponseEntity<String> addNewProject (@RequestParam String name) {
         Project p = new Project();
         p.setName(name);
         projectRepository.save(p);
-        return "Saved";
+        return new ResponseEntity<>("Saved", HttpStatus.OK);
     }
 
     @PostMapping(path="/addDevice")
-    public @ResponseBody String addNewDevice (@RequestParam int projectId,@RequestParam String serialNumber) {
+    public @ResponseBody ResponseEntity<String> addNewDevice (@RequestParam int projectId,@RequestParam String serialNumber) {
         Device d = new Device();
         d.setProject(projectRepository.findById(projectId));
         d.setSerial_number(serialNumber);
         deviceRepository.save(d);
-        return "Saved";
+        return new ResponseEntity<>("Saved", HttpStatus.OK);
     }
 
     @PostMapping(path="/addEvent")
-    public @ResponseBody String addNewEvent (@RequestParam Type type, @RequestParam boolean isRead, @RequestParam int deviceId) {
+    public @ResponseBody ResponseEntity<String> addNewEvent (@RequestParam Type type, @RequestParam boolean isRead, @RequestParam int deviceId) {
         Event e = new Event();
         e.setType(type);
         e.setIs_read(isRead);
         e.setDevice(deviceRepository.findById(deviceId));
         eventRepository.save(e);
-        return "Saved";
+        return new ResponseEntity<String>("Saved",HttpStatus.OK) ;
     }
 
 
     @GetMapping(path="/getProjectById")
-    public @ResponseBody Map<String, Object> getProjectById(@RequestParam int projectId) {
+    public @ResponseBody ResponseEntity<Object> getProjectById(@RequestParam int projectId) {
         Map<String, Object> map = new LinkedHashMap<String, Object>();
         Project p = projectRepository.findById(projectId);
         for (Device d: p.getDevices()) {
@@ -74,11 +76,11 @@ public class DeviceController {
                 }});
             }});
         }
-        return map;
+        return new ResponseEntity<Object>(map, HttpStatus.OK);
     }
 
     @GetMapping(path="/getAllProjects")
-    public @ResponseBody Iterable<Object> getAllProjects() {
+    public @ResponseBody ResponseEntity<Object> getAllProjects() {
         Set<Object> set = new LinkedHashSet<>();
         Iterable<Project> p = projectRepository.findAll();
         Date currentDate = Date.from(LocalDate.now().atStartOfDay().toInstant(ZoneOffset.UTC));
@@ -95,7 +97,7 @@ public class DeviceController {
                 put("devices", deviceRepository.findSerialsNumbersById(project.getId()));
             }});
         }
-        return set;
+        return new ResponseEntity<Object>(set, HttpStatus.OK);
     }
 
 }
