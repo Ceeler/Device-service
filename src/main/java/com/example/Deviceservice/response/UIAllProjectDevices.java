@@ -1,8 +1,8 @@
 package com.example.Deviceservice.response;
 
-public class ProjectInfoView {
+public class UIAllProjectDevices {
 
-    public ProjectInfoView(int id, String serialNumber, int projectId, boolean hasErrors){
+    public UIAllProjectDevices(int id, String serialNumber, int projectId, boolean hasErrors){
         this.id = id;
         this.serialNumber = serialNumber;
         this.projectId = projectId;

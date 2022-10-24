@@ -1,10 +1,10 @@
 package com.example.Deviceservice.response;
 
-import java.util.Set;
+import java.util.List;
 
-public class ProjectSummaryView {
+public class UIGetAllProjectsInfo {
 
-    public ProjectSummaryView(int id, String projectName, Set<String> devices){
+    public UIGetAllProjectsInfo(int id, String projectName, List<String> devices){
         this.id = id;
         this.projectName = projectName;
         this.devices = devices;
@@ -13,7 +13,7 @@ public class ProjectSummaryView {
     int id;
     String projectName;
     Stats stats;
-    Set<String> devices;
+    List<String> devices;
 
     public void setStats(int deviceCount, int deviceWithErrors, int stableDevices) {
         this.stats = new Stats(deviceCount, deviceWithErrors, stableDevices);
@@ -43,11 +43,11 @@ public class ProjectSummaryView {
         this.stats = stats;
     }
 
-    public Set<String> getDevices() {
+    public List<String> getDevices() {
         return devices;
     }
 
-    public void setDevices(Set<String> devices) {
+    public void setDevices(List<String> devices) {
         this.devices = devices;
     }
 }

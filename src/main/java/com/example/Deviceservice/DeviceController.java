@@ -7,8 +7,8 @@ import com.example.Deviceservice.model.Type;
 import com.example.Deviceservice.repositories.DeviceRepository;
 import com.example.Deviceservice.repositories.EventRepository;
 import com.example.Deviceservice.repositories.ProjectRepository;
-import com.example.Deviceservice.response.ProjectInfoView;
-import com.example.Deviceservice.response.ProjectSummaryView;
+import com.example.Deviceservice.response.UIAllProjectDevices;
+import com.example.Deviceservice.response.UIGetAllProjectsInfo;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
@@ -18,6 +18,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 
+import java.lang.reflect.Array;
 import java.time.LocalDate;
 import java.time.ZoneOffset;
 import java.util.*;
@@ -34,6 +35,12 @@ public class DeviceController {
 
     @PostMapping(path="/addProject")
     public @ResponseBody ResponseEntity<String> addNewProject (@RequestParam String name) {
+        if(name.equals("")){
+            return new ResponseEntity<>("Name can't be empty", HttpStatus.BAD_REQUEST);
+        }
+        if(projectRepository.existsByName(name)){
+            return new ResponseEntity<>("Name already added", HttpStatus.BAD_REQUEST);
+        }
         Project p = new Project();
         p.setName(name);
         projectRepository.save(p);
@@ -42,8 +49,15 @@ public class DeviceController {
 
     @PostMapping(path="/addDevice")
     public @ResponseBody ResponseEntity<String> addNewDevice (@RequestParam int projectId,@RequestParam String serialNumber) {
+        Project p = projectRepository.findById(projectId);
+        if(p == null){
+            return new ResponseEntity<>("Project id Not Found", HttpStatus.NOT_FOUND);
+        }
+        if(serialNumber.equals("")){
+            return new ResponseEntity<>("Serial number can't be Empty", HttpStatus.BAD_REQUEST);
+        }
         Device d = new Device();
-        d.setProject(projectRepository.findById(projectId));
+        d.setProject(p);
         d.setSerial_number(serialNumber);
         deviceRepository.save(d);
         return new ResponseEntity<>("Saved", HttpStatus.OK);
@@ -51,54 +65,96 @@ public class DeviceController {
 
     @PostMapping(path="/addEvent")
     public @ResponseBody ResponseEntity<String> addNewEvent (@RequestParam Type type, @RequestParam boolean isRead, @RequestParam int deviceId) {
+
         Event e = new Event();
         e.setType(type);
         e.setIs_read(isRead);
         e.setDevice(deviceRepository.findById(deviceId));
         eventRepository.save(e);
-        return new ResponseEntity<String>("Saved",HttpStatus.OK) ;
+        return new ResponseEntity<>("Saved",HttpStatus.OK) ;
     }
 
 
-    @GetMapping(path="/getProjectById")
+    @GetMapping(path="/getAllProjectDevices")
     public @ResponseBody ResponseEntity<Object> getProjectById(@RequestParam int projectId) {
-        Map<String, ProjectInfoView> response = new LinkedHashMap<>();
+
         Project p = projectRepository.findById(projectId);
+        Map<String, UIAllProjectDevices> response = new LinkedHashMap<>();
+
+        if(p==null){
+            return new ResponseEntity<>("Project not fount", HttpStatus.NOT_FOUND);
+        }
+
         for (Device d: p.getDevices()) {
             int id = d.getId();
             String serialNumber = d.getSerial_number();
-            boolean hasErrors =  !eventRepository.isErrorsById(id).isEmpty();
-            int eventCount = eventRepository.countEventByDevice_IdAndType(id, Type.event);
-            int warningCount = eventRepository.countEventByDevice_IdAndType(id, Type.warning);
-            int errorCount = eventRepository.countEventByDevice_IdAndType(id, Type.error);
+            boolean hasErrors = false;
+            int eventCount = 0;
+            int warningCount = 0;
+            int errorCount = 0;
 
-            ProjectInfoView projectInfoView = new ProjectInfoView(id,serialNumber, projectId, hasErrors);
-            projectInfoView.setSummaryInfo(eventCount, warningCount, errorCount);
+            for (Event e: d.getEvents()) {
+                Type eventType = e.getType();
+                if(eventType == Type.event){
+                    eventCount++;
+                }else if(eventType == Type.warning){
+                    warningCount++;
+                } else if(eventType == Type.error) {
+                    errorCount++;
+                }
+            }
+            if(errorCount > 0){
+                hasErrors = true;
+            }
 
-            response.put(serialNumber, projectInfoView);
+            UIAllProjectDevices uiAllProjectDevices = new UIAllProjectDevices(id,serialNumber, projectId, hasErrors);
+            uiAllProjectDevices.setSummaryInfo(eventCount, warningCount, errorCount);
+
+            response.put(serialNumber, uiAllProjectDevices);
+
         }
-        return new ResponseEntity<Object>(response, HttpStatus.OK);
+
+        return new ResponseEntity<>(response, HttpStatus.OK);
     }
 
-    @GetMapping(path="/getAllProjects")
+    @GetMapping(path="/getAllProjectsInfo")
     public @ResponseBody ResponseEntity<Object> getAllProjects() {
-        Set<ProjectSummaryView> response = new LinkedHashSet<>();
+
+        Set<UIGetAllProjectsInfo> response = new LinkedHashSet<>();
         Iterable<Project> p = projectRepository.findAll();
         Date currentDate = Date.from(LocalDate.now().atStartOfDay().toInstant(ZoneOffset.UTC));
+
         for (Project project: p) {
             int id = project.getId();
             String projectName = project.getName();
             int deviceAmount = project.getDevices().size();
-            int deviceWithErrors = eventRepository.countDevicesWithProblems(currentDate, project.getId()).size();
-            int stableDevices = deviceAmount - eventRepository.countUnstableDevices(project.getId()).size();
-            Set devices = deviceRepository.findSerialsNumbersById(project.getId());
+            int deviceWithErrors = 0;
+            int stableDevices = 0;
+            List<String> devices = new LinkedList<>();
 
-            ProjectSummaryView oneProject = new ProjectSummaryView(id, projectName, devices);
+            for(Device d: project.getDevices()){
+                boolean isStable = true;
+                for (Event e: d.getEvents()){
+                    if((e.getType() == Type.error || e.getType() == Type.warning) && e.getDate().after(currentDate)){
+                        deviceWithErrors ++;
+                        break;
+                    }else if((e.getType() == Type.error || e.getType() == Type.warning) && isStable){
+                        isStable = false;
+                    }
+                }
+                if(isStable){
+                    stableDevices++;
+                }
+                devices.add(d.getSerial_number());
+            }
+
+
+            UIGetAllProjectsInfo oneProject = new UIGetAllProjectsInfo(id, projectName, devices);
             oneProject.setStats(deviceAmount, deviceWithErrors, stableDevices);
 
             response.add(oneProject);
         }
-        return new ResponseEntity<Object>(response, HttpStatus.OK);
+        return new ResponseEntity<>(response, HttpStatus.OK);
     }
 
 }

@@ -18,14 +18,14 @@ public class Device {
     @SequenceGenerator(name = "device_seq", allocationSize = 1)
     private int id;
     @JsonBackReference
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "project_id", nullable = false)
     private Project project;
 
     @Column(nullable = false)
     private String serial_number;
     @JsonManagedReference
-    @OneToMany(mappedBy = "device")
+    @OneToMany(fetch = FetchType.LAZY, mappedBy = "device")
     private List<Event> events;
 
 
