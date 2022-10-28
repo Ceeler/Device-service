@@ -1,4 +1,4 @@
-package com.example.Deviceservice.model;
+package com.example.Deviceservice.model.database;
 
 import com.fasterxml.jackson.annotation.JsonBackReference;
 import org.hibernate.annotations.CreationTimestamp;

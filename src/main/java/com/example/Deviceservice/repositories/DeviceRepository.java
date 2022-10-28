@@ -1,12 +1,9 @@
 package com.example.Deviceservice.repositories;
 
-import com.example.Deviceservice.model.Device;
-import org.springframework.data.jpa.repository.EntityGraph;
+import com.example.Deviceservice.model.database.Device;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.CrudRepository;
 
-import javax.persistence.Entity;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Set;
 

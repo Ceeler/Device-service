@@ -1,4 +1,4 @@
-package com.example.Deviceservice.response;
+package com.example.Deviceservice.model.response;
 
 import java.util.List;
 
